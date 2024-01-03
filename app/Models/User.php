@@ -17,21 +17,18 @@ class User extends Authenticatable
      *
      * @var array<int, string>
      */
-    protected $primaryKey = 'id_user';
+    protected $primaryKey = "id_user";
 
-    protected $table = 'users';
+    protected $table = "users";
 
-    protected $guarded = ['id_user'];
+    protected $guarded = ["id_user"];
 
     /**
      * The attributes that should be hidden for serialization.
      *
      * @var array<int, string>
      */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
+    protected $hidden = ["password", "remember_token"];
 
     /**
      * The attributes that should be cast.
@@ -39,7 +36,12 @@ class User extends Authenticatable
      * @var array<string, string>
      */
     protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
+        "email_verified_at" => "datetime",
+        "password" => "hashed",
     ];
+
+    public function products()
+    {
+        return $this->hasMany(Product::class, "user_id", "id_user");
+    }
 }

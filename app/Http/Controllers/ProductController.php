@@ -6,6 +6,8 @@ use App\Models\Product;
 use Illuminate\Http\Request;
 use RealRashid\SweetAlert\Facades\Alert;
 use Exception;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -14,10 +16,12 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $product = Product::orderBy('name', 'asc')->get();
+        $product = Product::with("user")
+            ->orderBy("name", "asc")
+            ->get();
 
-        return view('product.product', [
-            'product' => $product
+        return view("product.product", [
+            "product" => $product,
         ]);
     }
 
@@ -26,7 +30,7 @@ class ProductController extends Controller
      */
     public function create()
     {
-        return view('product.product-add');
+        return view("product.product-add");
     }
 
     /**
@@ -34,19 +38,30 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|max:100|unique:products',
-            'category' => 'required',
-            'supplier' => 'required',
-            'stock' => 'required',
-            'price' => 'required',
-            'note' => 'max:1000',
-        ]);
+        try {
+            DB::beginTransaction();
+            $validated = $request->validate([
+                "name" => "required|max:100|unique:products",
+                "category" => "required",
+                "supplier" => "required",
+                "stock" => "required",
+                "price" => "required",
+                "note" => "max:1000",
+            ]);
 
-        $product = Product::create($request->all());
+            $userId = auth()->id();
+            $product = Product::create(
+                array_merge($request->all(), ["user_id" => $userId]),
+            );
 
-        Alert::success('Success', 'Product has been saved !');
-        return redirect('/product');
+            DB::commit();
+            Alert::success("Success", "Product has been saved !");
+            return redirect("/product");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Alert::error("Error", "Failed to save the product.");
+            return redirect("/product/create");
+        }
     }
 
     /**
@@ -62,10 +77,11 @@ class ProductController extends Controller
      */
     public function edit($id_product)
     {
-        $product = Product::findOrFail($id_product);
-
-        return view('product.product-edit', [
-            'product' => $product,
+        $product = Product::where("user_id", Auth::id())->findOrFail(
+            $id_product,
+        );
+        return view("product.product-edit", [
+            "product" => $product,
         ]);
     }
 
@@ -74,20 +90,34 @@ class ProductController extends Controller
      */
     public function update(Request $request, $id_product)
     {
-        $validated = $request->validate([
-            'name' => 'required|max:100|unique:barangs,name,' . $id_product . ',id_product',
-            'category' => 'required',
-            'supplier' => 'required',
-            'stock' => 'required',
-            'price' => 'required',
-            'note' => 'max:1000',
-        ]);
+        try {
+            DB::beginTransaction();
+            $validated = $request->validate([
+                "name" =>
+                    "required|max:100|unique:barangs,name," .
+                    $id_product .
+                    ",id_product",
+                "category" => "required",
+                "supplier" => "required",
+                "stock" => "required",
+                "price" => "required",
+                "note" => "max:1000",
+            ]);
 
-        $product = Product::findOrFail($id_product);
-        $product->update($validated);
+            $product = Product::where("user_id", Auth::id())->findOrFail(
+                $id_product,
+            );
+            $product->update($validated);
 
-        Alert::info('Success', 'product has been updated !');
-        return redirect('/product');
+            DB::commit();
+            Alert::info("Success", "product has been updated !");
+            return redirect("/product");
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Alert::warning("Error", "Failed to update the product.");
+            return redirect("/product");
+        }
     }
 
     /**
@@ -96,15 +126,22 @@ class ProductController extends Controller
     public function destroy($id_product)
     {
         try {
-            $deletedproduct = Product::findOrFail($id_product);
-
+            DB::beginTransaction();
+            $deletedproduct = Product::where("user_id", Auth::id())->findOrFail(
+                $id_product,
+            );
             $deletedproduct->delete();
 
-            Alert::error('Success', 'product has been deleted !');
-            return redirect('/product');
-        } catch (Exception $ex) {
-            Alert::warning('Error', 'Cant deleted, product already used !');
-            return redirect('/product');
+            DB::commit();
+            Alert::error("Success", "product has been deleted !");
+            return redirect("/product");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Alert::warning(
+                "Error",
+                "Failed to delete the product. It may have already been deleted or does not exist.",
+            );
+            return redirect("/product");
         }
     }
 }

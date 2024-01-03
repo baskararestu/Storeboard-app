@@ -1,11 +1,10 @@
 <?php
 
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-
 
 /*
 |--------------------------------------------------------------------------
@@ -18,13 +17,24 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-
-Route::get('/register', [AuthController::class, 'register']);
-Route::post('/register', [AuthController::class, 'process']);
 Auth::routes();
 
-Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth');
-Route::get('/', [DashboardController::class, 'index'])->middleware('auth');
+Route::get("/dashboard", [DashboardController::class, "index"])->middleware(
+    "auth",
+);
+Route::get("/", [DashboardController::class, "index"])->middleware("auth");
 
 //route barang
-Route::resource('/product', ProductController::class)->middleware('auth');
+Route::resource("/product", ProductController::class)->middleware("auth");
+
+// Route::middleware("auth:sanctum")->group(function () {
+//     Route::get("/profile", [UserController::class]);
+//     Route::put("/user/update", [UserController::class, "update"]);
+// });
+
+Route::resource("/profile", UserController::class)
+    ->only(["index", "update"])
+    ->middleware("auth");
+Route::put("/profile/{id_user}", [UserController::class, "update"])
+    ->name("profile.update")
+    ->middleware("auth");
