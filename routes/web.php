@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProductController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 
@@ -15,11 +18,13 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+
 Route::get('/register', [AuthController::class, 'register']);
 Route::post('/register', [AuthController::class, 'process']);
 Auth::routes();
 
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth');
+Route::get('/', [DashboardController::class, 'index'])->middleware('auth');
+
+//route barang
+Route::resource('/product', ProductController::class)->middleware('auth');
